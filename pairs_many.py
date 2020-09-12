@@ -9,18 +9,20 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from itertools import combinations
 from statsmodels.stats.stattools import durbin_watson, jarque_bera
+from time import sleep
+from numpy import cumsum, polyfit, log, sqrt, std, subtract,var, log10
 
 pd.set_option('display.max_columns', 500)
 # ticker list
 
 #XLU
-#symbList = ['NEE', 'D', 'DUK', 'SO', 'AEP', 'SRE', 'EXC', 'XEL', 'WEC', 'ES', 'ED', 'PEG', 'FE', 'AWK', 'EIX', 'DTE', 'PPL', 'ETR', 'AEE', 'CMS', 'EVRG', 'ATO', 'LNT', 'NI', 'PNW', 'AES', 'CNP', 'NRG']
+# symbList = ['NEE', 'D', 'DUK', 'SO', 'AEP', 'SRE', 'EXC', 'XEL', 'WEC', 'ES', 'ED', 'PEG', 'FE', 'AWK', 'EIX', 'DTE', 'PPL', 'ETR', 'AEE', 'CMS', 'EVRG', 'ATO', 'LNT', 'NI', 'PNW', 'AES', 'CNP', 'NRG']
 
 #XLE
 symbList =['CVX', 'XOM', 'COP', 'PSX', 'EOG', 'VLO', 'WMB', 'SLB', 'KMI', 'MPC', 'PXD', 'OXY', 'OKE', 'HES', 'CXO', 'BKR', 'HAL', 'COG', 'FANG', 'NOV', 'HFC', 'MRO', 'DVN', 'APA', 'NBL', 'FTI', 'HP']
 
 #XLRE
-#symbList =['AMT', 'CCI', 'PLD', 'EQIX', 'DLR', 'SBAC', 'PSA', 'AVB', 'EQR', 'SPG', 'WELL', 'ARE', 'O', 'ESS', 'WY', 'BXP', 'CBRE', 'MAA', 'PEAK', 'DRE', 'VTR', 'EXR', 'UDR', 'HST', 'REG', 'IRM', 'VNO', 'FRT', 'AIV', 'KIM', 'SLG']
+# symbList =['AMT', 'CCI', 'PLD', 'EQIX', 'DLR', 'SBAC', 'PSA', 'AVB', 'EQR', 'SPG', 'WELL', 'ARE', 'O', 'ESS', 'WY', 'BXP', 'CBRE', 'MAA', 'PEAK', 'DRE', 'VTR', 'EXR', 'UDR', 'HST', 'REG', 'IRM', 'VNO', 'FRT', 'AIV', 'KIM', 'SLG']
 
 #XLC
 #symbList =['FB', 'GOOGL', 'GOOG', 'TMUS', 'EA', 'NFLX', 'CHTR', 'ATVI', 'DIS', 'VZ', 'CMCSA', 'T', 'TWTR', 'TTWO', 'OMC', 'CTL', 'FOXA', 'VIAC', 'DISCK', 'IPG', 'DISH', 'LYV', 'FOX', 'NWSA', 'DISCA', 'NWS']
@@ -29,24 +31,57 @@ symbList =['CVX', 'XOM', 'COP', 'PSX', 'EOG', 'VLO', 'WMB', 'SLB', 'KMI', 'MPC',
 # symbList =['AMZN', 'HD', 'MCD', 'NKE', 'SBUX', 'LOW', 'BKNG', 'TJX', 'TGT', 'DG', 'ROST', 'EBAY', 'ORLY', 'GM', 'YUM', 'AZO', 'MAR', 'CMG', 'HLT', 'F', 'DLTR', 'VFC', 'APTV', 'BBY', 'DHI', 'LVS', 'LEN', 'TIF', 'ULTA', 'TSCO', 'KMX', 'GRMN', 'GPC', 'NVR', 'EXPE', 'DRI', 'HAS', 'AAP', 'WYNN', 'MGM', 'LKQ', 'WHR', 'PHM', 'RCL', 'CCL', 'BWA', 'MHK', 'NWL', 'LEG', 'TPR', 'RL', 'HBI', 'PVH', 'HOG', 'HRB', 'NCLH', 'KSS', 'LB', 'CPRI', 'JWN', 'UAA', 'GPS']
 
 #XLP
-#symbList = ['PG', 'PEP', 'KO', 'WMT', 'MDLZ', 'MO', 'COST', 'PM', 'CL', 'KMB', 'EL', 'GIS', 'WBA', 'STZ', 'SYY', 'KR', 'CLX', 'MNST', 'HSY', 'ADM', 'MKC',  'TSN', 'CHD', 'CAG', 'K', 'SJM', 'HRL',  'CPB',  'TAP', 'COTY']
+# symbList = ['PG', 'PEP', 'KO', 'WMT', 'MDLZ', 'MO', 'COST', 'PM', 'CL', 'KMB', 'EL', 'GIS', 'WBA', 'STZ', 'SYY', 'KR', 'CLX', 'MNST', 'HSY', 'ADM', 'MKC',  'TSN', 'CHD', 'CAG', 'K', 'SJM', 'HRL',  'CPB',  'TAP', 'COTY']
 
+# symbList = ['NVDA','SOXX','AMD','INTC','TSM','QQQ','XLK']
 
-#symbList = ['SPY','XLU']
+# symbList = ['O','ACC','AWP','CCI','BRX','CDR','KIM','UBP','PK','MGP','HT','STAY','VICI','XHR','CXW','GEO']
 
+# symbList = ['GS','BAC','WFC','BK','BLK','BX','JPM','C','AXP','CME','CBOE']
 
-
-start_date = '2010/01/01'
-end_date = '2015/01/01'
+start_date = '2016/01/01'
+end_date = '2020/08/01'
 
 #end_date = datetime.now()
+
+lags = range(2,100)
+def hurst_ernie_chan(p):
+
+    variancetau = []; tau = []
+
+    for lag in lags:
+
+        #  Write the different lags into a vector to compute a set of tau or lags
+        tau.append(lag)
+
+        # Compute the log returns on all days, then compute the variance on the difference in log returns
+        # call this pp or the price difference
+        pp = subtract(p[lag:], p[:-lag])
+        variancetau.append(var(pp))
+
+    # we now have a set of tau or lags and a corresponding set of variances.
+    #print tau
+    #print variancetau
+
+    # plot the log of those variance against the log of tau and get the slope
+    m = polyfit(log10(tau),log10(variancetau),1)
+
+    hurst = m[0] / 2
+
+    return hurst
 
 def get_data(symbList=symbList,start_date=start_date,end_date=end_date):
 
     df_list = []
     for i in symbList:
         print('Loading data: ',i)
-        dt = data.DataReader(i, "yahoo", start=start_date, end=end_date)
+
+
+        try: dt = data.DataReader(i, "yahoo", start=start_date, end=end_date)
+        except:
+            print('Loading data Failed:',i)
+            continue
+        sleep(0.5)
         dt.rename(columns={'Close': 'price'}, inplace=True)
         df_list.append(dt)
 
@@ -109,7 +144,19 @@ def stats(x,y):
             (df1.spread == mean))
 
     cross = df1.cross.sum()
-    return [hrr,df1.hr.std(),mean,std,halflife,cadf,hrr-hr,df1,dw,est,jb,cross]
+
+
+    # Coint test
+    result = ts.coint(df1['x'], df1['y'])
+
+    # Hurst exponent
+
+    hurst = hurst_ernie_chan(df1['spread'])
+
+
+
+
+    return [hrr,df1.hr.std(),mean,std,halflife,cadf,hrr-hr,df1,dw,est,jb,cross,result,hurst]
 
 
 def plot1(x,y,i):
@@ -163,7 +210,7 @@ for i in combs:
 
     #plot2(x=x, y=y, i=i)
 
-    if abs(st[5][0]) > abs(st[5][4]['1%']) and st[4]>0  and st[0] >0 and st[4] < 50:#and st[5][1] < (0.1/len(combs)) and st[8]>1.5 and st[8] < 2.5 :
+    if abs(st[12][0]) >= abs(st[12][2][1]):# and abs(st[5][0]) > abs(st[5][4]['5%']):# and st[4]>0  and st[0] >0 and st[4] < 50 and abs(st[12][0]) >= abs(st[12][2][0]) and st[12][0] < 0.5:#and st[5][1] < (0.1/len(combs)) and st[8]>1.5 and st[8] < 2.5 :
 
         print(st[9].summary())
 
@@ -173,8 +220,10 @@ for i in combs:
         print ('Augmented Dickey Fuller test statistic =',st[5][0])
         print ('Augmented Dickey Fuller p-value =',st[5][1])
         print ('Augmented Dickey Fuller 1%, 5% and 10% test statistics =',st[5][4])
-
-
+        print('Cointegration test statistic =', st[12][0])
+        print('Cointegration test p-value  =', st[12][1])
+        print('Cointegration test 1%, 5% and 10% test statistics =', st[12][2])
+        print('Hurst Exponent:', st[13])
 
         print  ('Halflife = ',st[4])
 
@@ -184,14 +233,17 @@ for i in combs:
         plot2(x=x, y=y, i=i)
         plot3(st[7],st[2],st[3],i)
 
-        dic = {'pair':i,'mean':st[2],'std':st[3],'adf_test':st[5][0],'adf_p_value':st[5][1],'hedge_ratio_round':st[0],'hedge_ratio_error':st[6],'halflife':st[4],'Durbin':st[8],'cross': st[11]}
+        dic = {'pair':i,'mean':st[2],'std':st[3],'adf_test':st[5][0],'adf_p_value':st[5][1],'hedge_ratio_round':st[0],'hedge_ratio_error':st[6],'halflife':st[4],'Durbin':st[8],'crosses': st[11],'coint':st[12][0],'coint-pvalue':st[12][1],'Hurst Exp':st[13] }
         dict_list.append(dic)
 
     else:
         print('Failed Test')
     #breakpoint()
 
-df = pd.DataFrame(dict_list).sort_values(by=['halflife'], ascending=True)
+df = pd.DataFrame(dict_list).sort_values(by=['Hurst Exp'], ascending=False)
 
+# df.to_csv('/Users/joanarau-schweizer/PycharmProjects/pairs_trading/DB/pairs.csv')
 
 print(df)
+print(len(df.index))
+
