@@ -8,7 +8,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-
+import empyrical
 import math
 
 
@@ -49,6 +49,41 @@ import statsmodels.api as sm
 # Delta hedge portfolio using /MES
 #
 ###
+
+def printTradeAnalysis(analyzer):
+    '''
+    Function to print the Technical Analysis results in a nice format.
+    '''
+    #Get the results we are interested in
+    print(analyzer)
+    total_open = analyzer.total.open
+    total_closed = analyzer.total.closed
+    total_won = analyzer.won.total
+    total_lost = analyzer.lost.total
+    win_streak = analyzer.streak.won.longest
+    lose_streak = analyzer.streak.lost.longest
+    pnl_net = round(analyzer.pnl.net.total,2)
+    strike_rate = (total_won / total_closed) * 100
+    #Designate the rows
+    h1 = ['Total Open', 'Total Closed', 'Total Won', 'Total Lost']
+    h2 = ['Strike Rate','Win Streak', 'Losing Streak', 'PnL Net']
+    r1 = [total_open, total_closed,total_won,total_lost]
+    r2 = [str(round(strike_rate))+'%', win_streak, lose_streak, pnl_net]
+    #Check which set of headers is the longest.
+    if len(h1) > len(h2):
+        header_length = len(h1)
+    else:
+        header_length = len(h2)
+    #Print the rows
+    print_list = [h1,r1,h2,r2]
+    row_format ="{:<15}" * (header_length + 1)
+    print("Trade Analysis Results:")
+    for row in print_list:
+        print(row_format.format('',*row))
+
+def printSQN(analyzer):
+    sqn = round(analyzer.sqn,2)
+    print('SQN: {}'.format(sqn))
 
 
 class FixedCommisionScheme(bt.CommInfoBase):
@@ -91,11 +126,11 @@ def parse_args():
                         help='2nd data into the system')
 
     parser.add_argument('--fromdate', '-f',
-                        default=total[0],
+                        default=high_vol[0],
                         help='Starting date in YYYY-MM-DD format')
 
     parser.add_argument('--todate', '-t',
-                        default=total[1],
+                        default=high_vol[1],
                         help='Starting date in YYYY-MM-DD format')
 
     parser.add_argument('--period', default=60, type=int,
@@ -124,6 +159,9 @@ def parse_args():
 
     parser.add_argument('--numfigs', '-n', default=1,
                         help='Plot using numfigs figures')
+
+    parser.add_argument('--rf_rate', '-rf', default=0.001,
+                        help='Risk free rate')
 
     return parser.parse_args()
 
@@ -169,6 +207,8 @@ class PairTradingStrategy(bt.Strategy):
         stop_down = -4,
         status=0,
         portfolio_value=args.cash,
+        coint_pvalue_cutoff = 0.5,
+        plot = args.plot
     )
 
     def log(self, txt, dt=None):
@@ -334,6 +374,7 @@ class PairTradingStrategy(bt.Strategy):
                                                'beta':self.beta[0],
                                                'coint_score':self.coint.score[0],
                                                'coint_crit': self.coint.crit[0],
+                                                'coint_pvalue':self.coint.pvalue[0],
                                                'zscore':self.zscore[0],
                                                })
                 else:
@@ -356,7 +397,8 @@ class PairTradingStrategy(bt.Strategy):
 
 
 
-                if abs(self.coint.score[0]) < abs(self.coint.crit[0]) :
+                # if abs(self.coint.score[0]) < abs(self.coint.crit[0]) :
+                if self.coint.pvalue[0] > self.p.coint_pvalue_cutoff:
                     # print('Cointegration broke')
                     if self.spread_traker[self.sp][0] != 0:
 
@@ -599,64 +641,68 @@ class PairTradingStrategy(bt.Strategy):
         print('Ending   Value - %.2f' % self.broker.getvalue())
         print('==================================================')
 
+        if self.p.plot:
+            for i in self.plts.keys():
+
+                plot_df = pd.DataFrame(self.plts[i][0])
+                # print(i,' ',self.plts[i][1])
+                # print(plot_df.tail())
 
 
 
-        for i in self.plts.keys():
-
-            plot_df = pd.DataFrame(self.plts[i][0])
-            # print(i,' ',self.plts[i][1])
-            # print(plot_df.tail())
+                plt_dates = dates.date2num(plot_df['date'])
 
 
 
-            plt_dates = dates.date2num(plot_df['date'])
+                fig, axs = plt.subplots(4, sharex=True)
+                fig.autofmt_xdate()
 
+                axs[0].plot(plt_dates,plot_df['spread'])
+                axs[0].plot(plt_dates, plot_df['spread_mean'], color='r')
+                axs[0].plot(plt_dates, plot_df['spread_mean']+plot_df['std'], color='g')
+                axs[0].plot(plt_dates, plot_df['spread_mean'] - plot_df['std'], color='g')
+                axs[0].plot(plt_dates, plot_df['spread_mean']+(2*plot_df['std']), color='y')
+                axs[0].plot(plt_dates, plot_df['spread_mean'] - (2*plot_df['std']), color='y')
+                axs[0].set_title(i+' Spread')
 
+                axs[1].plot(plt_dates,plot_df['beta'])
+                axs[1].set_title('Beta')
 
-            fig, axs = plt.subplots(4, sharex=True)
-            fig.autofmt_xdate()
+                # axs[2].plot(plt_dates,abs(plot_df['coint_score']), color='b')
+                # axs[2].plot(plt_dates, abs(plot_df['coint_crit']), color='r')
+                # axs[2].set_title('Coint')
 
-            axs[0].plot(plt_dates,plot_df['spread'])
-            axs[0].plot(plt_dates, plot_df['spread_mean'], color='r')
-            axs[0].plot(plt_dates, plot_df['spread_mean']+plot_df['std'], color='g')
-            axs[0].plot(plt_dates, plot_df['spread_mean'] - plot_df['std'], color='g')
-            axs[0].plot(plt_dates, plot_df['spread_mean']+(2*plot_df['std']), color='y')
-            axs[0].plot(plt_dates, plot_df['spread_mean'] - (2*plot_df['std']), color='y')
-            axs[0].set_title(i+' Spread')
-            axs[1].plot(plt_dates,plot_df['beta'])
-            axs[1].set_title('Beta')
-            axs[2].plot(plt_dates,abs(plot_df['coint_score']), color='b')
-            axs[2].plot(plt_dates, abs(plot_df['coint_crit']), color='r')
-            axs[2].set_title('Coint')
+                axs[2].xaxis_date()
+                axs[2].plot(plt_dates, plot_df['zscore'])
+                axs[2].axhline(y = self.up_medium, color='g')
+                axs[2].axhline(y=self.low_medium, color='g')
+                axs[2].axhline(y = self.upper_limit, color='b')
+                axs[2].axhline(y=self.lower_limit, color='b')
+                axs[2].axhline(y = self.stop_up, color='r')
+                axs[2].axhline(y=self.stop_down, color='r')
 
-            axs[3].xaxis_date()
-            axs[3].plot(plt_dates, plot_df['zscore'])
-            axs[3].axhline(y = self.up_medium, color='g')
-            axs[3].axhline(y=self.low_medium, color='g')
-            axs[3].axhline(y = self.upper_limit, color='b')
-            axs[3].axhline(y=self.lower_limit, color='b')
-            axs[3].axhline(y = self.stop_up, color='r')
-            axs[3].axhline(y=self.stop_down, color='r')
+                axs[2].scatter(self.plts[i][1]['long'][0], self.plts[i][1]['long'][1],500, color='green',marker = '^')
+                axs[2].scatter(self.plts[i][1]['short'][0], self.plts[i][1]['short'][1],500, color='orange',marker = 'v')
+                axs[2].scatter(self.plts[i][1]['close'][0], self.plts[i][1]['close'][1],500, color='blue',marker = 'd')
+                axs[2].scatter(self.plts[i][1]['stop'][0], self.plts[i][1]['stop'][1],500, color='red',marker = 's')
 
-            axs[3].scatter(self.plts[i][1]['long'][0], self.plts[i][1]['long'][1],500, color='green',marker = '^')
-            axs[3].scatter(self.plts[i][1]['short'][0], self.plts[i][1]['short'][1],500, color='orange',marker = 'v')
-            axs[3].scatter(self.plts[i][1]['close'][0], self.plts[i][1]['close'][1],500, color='blue',marker = 'd')
-            axs[3].scatter(self.plts[i][1]['stop'][0], self.plts[i][1]['stop'][1],500, color='red',marker = 's')
+                axs[2].format_xdata = dates.DateFormatter('%Y-%m-%d')
 
-            axs[3].format_xdata = dates.DateFormatter('%Y-%m-%d')
+                axs[2].set_title('Zscore')
+                # axs[3].xaxis.set_major_locator(years)
+                axs[2].xaxis.set_major_formatter(dates.DateFormatter('%Y'))
 
-            axs[3].set_title('Zscore')
-            # axs[3].xaxis.set_major_locator(years)
-            axs[3].xaxis.set_major_formatter(dates.DateFormatter('%Y'))
+                axs[3].plot(plt_dates, plot_df['coint_pvalue'])
+                axs[3].set_title('Coint PValue')
+                axs[3].axhline(y=self.p.coint_pvalue_cutoff, color='r')
 
 
 
 
-            plt.tight_layout()
+                plt.tight_layout()
 
 
-            plt.show()
+                plt.show()
 
 
 
@@ -741,10 +787,22 @@ def runstrategy(ticker_list,bench_ticker):
 
     comminfo = FixedCommisionScheme()
     cerebro.broker.addcommissioninfo(comminfo)
+    cerebro.broker.set_shortcash(False)
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe_ratio')
 
+    cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="ta")
+    cerebro.addanalyzer(bt.analyzers.SQN, _name="sqn")
+    cerebro.addanalyzer(bt.analyzers.SharpeRatio_A, _name='myysharpe', riskfreerate=args.rf_rate)
+    cerebro.addanalyzer(bt.analyzers.PyFolio, _name='mypyf')
+    cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Days,
+                        data=bench, _name='benchreturns')
+
+    cerebro.addobserver(bt.observers.Value)
+    cerebro.addobserver(bt.observers.Benchmark,plot = False)
+    cerebro.addobserver(bt.observers.DrawDown)
+
     # And run it
-    cerebro.run(runonce=not args.runnext,
+    strat = cerebro.run(runonce=not args.runnext,
                 preload=not args.nopreload,
                 oldsync=args.oldsync
                 )
@@ -755,9 +813,84 @@ def runstrategy(ticker_list,bench_ticker):
 
 
 
+    printSQN(strat[0].analyzers.sqn.get_analysis())
+
+    bench_returns = strat[0].analyzers.benchreturns.get_analysis()
+    bench_df = pd.DataFrame.from_dict(bench_returns, orient='index', columns=['return'])
+    return_df = pd.DataFrame.from_dict(strat[0].analyzers.mypyf.get_analysis()['returns'], orient='index',
+                                       columns=['return'])
+
+    # print('Sharpe Ratio(bt):', firstStrat.analyzers.myysharpe.get_analysis()['sharperatio'])
+    print('Sharpe Ratio:', empyrical.sharpe_ratio(return_df, risk_free=args.rf_rate / 252, period='daily')[0])
+    print('Sharpe Ratio Benchmark:', empyrical.sharpe_ratio(bench_df, risk_free=args.rf_rate / 252, period='daily')[0])
+    print('')
+
+    print('Sortino Ratio:', empyrical.sortino_ratio(return_df, period='daily')[0])
+    print('Sortino Ratio Benchmark:', empyrical.sortino_ratio(bench_df, period='daily')[0])
+    print('')
+    print('VaR:', empyrical.value_at_risk(return_df) * 100, '%')
+    print('VaR Benchmark:', empyrical.value_at_risk(bench_df) * 100, '%')
+
+    print('')
+
+    print('Capture:', round(empyrical.capture(return_df, bench_df, period='daily')[0] * 100), '%')
+    print('')
+
+    print('Max drawdown: ', round(empyrical.max_drawdown(return_df)[0] * 100), '%')
+    print('Max drawdown Benchmark: ', round(empyrical.max_drawdown(bench_df)[0] * 100), '%')
+
+    print('')
+    alpha, beta = empyrical.alpha_beta(return_df, bench_df, risk_free=args.rf_rate)
+    print('Beta: ', beta)
+    print('')
+    print('Annual return:', round(empyrical.annual_return(return_df)[0] * 100), '%')
+    print('Annual Vol:', round(empyrical.annual_volatility(return_df)[0] * 100), '%')
+    print('')
+    print('Annual return Benchmark:', round(empyrical.annual_return(bench_df)[0] * 100), '%')
+    print('Annual Vol Benchmark:', round(empyrical.annual_volatility(bench_df)[0] * 100), '%')
+    print('')
+
+    def calc_stats(df):
+        df['perc_ret'] = (1 + df['return']).cumprod() - 1
+        # print(df.tail())
+        return df
+
+    s = return_df.rolling(30).std()
+    b = bench_df.rolling(30).std()
+
+    # Get final portfolio Value
+    portvalue = cerebro.broker.getvalue()
+
+    # Print out the final result
+    print('Final Portfolio Value: ${}'.format(round(portvalue)), 'PnL: ${}'.format(round(portvalue - args.cash)),
+          'PnL: {}%'.format(((portvalue / args.cash) - 1) * 100))
+
+    # Finally plot the end results
+
+    if args.plot:
+
+
+        fig, axs = plt.subplots(2, sharex=True)
+        fig.autofmt_xdate()
+
+        axs[1].plot(s)
+        axs[1].plot(b)
+
+        axs[1].set_title('Drawdown')
+        axs[1].legend(['Fund', 'Benchmark'])
+
+        axs[0].set_title('Returns')
+        axs[0].plot(calc_stats(return_df)['perc_ret'])
+        axs[0].plot(calc_stats(bench_df)['perc_ret'])
+        axs[0].legend(['Fund', 'Benchmark'])
+        plt.show()
+
+
+
 bench_ticker = 'SPY'
 # ticker_list = ['XLF','BLK','WFC','BAC','JPM','GS','SPGI','AXP','MS','BK','MMC']
-ticker_list = ['XLF','JPM','GS']
+ticker_list = ['XLF','JPM','GS','MS']
+# ticker_list = ['XLF','MS']
 # ticker_list = ['VTI','XLF','XLU','XLK','XLV','XLY','XLP','XLE']
 
 

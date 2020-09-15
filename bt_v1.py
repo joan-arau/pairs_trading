@@ -52,7 +52,7 @@ pylab.rcParams["font.size"] = "10"
 
 class PairTradingStrategy(bt.Strategy):
     params = dict(
-        period=252,
+        period=10,
         stake=10,
         qty1=0,
         qty2=0,
@@ -135,7 +135,7 @@ class PairTradingStrategy(bt.Strategy):
         print('zscore is', self.zscore[0])
 
 
-        size = 10
+        size = 1000
         hr = self.beta[0]
 
         # Step 2: Check conditions for SHORT & place the order
@@ -221,14 +221,14 @@ def runstrategy():
     todate = datetime.datetime.strptime(args.todate, '%Y-%m-%d')
 
     data0 = bt.feeds.YahooFinanceData(
-        dataname='SPY',
+        dataname='HST',
         fromdate=fromdate,
         todate=todate,
         buffered=True
     )
 
     data1= bt.feeds.YahooFinanceData(
-        dataname='QQQ',
+        dataname='VNO',
         fromdate=fromdate,
         todate=todate,
         buffered=True
@@ -273,14 +273,14 @@ def parse_args():
                         help='2nd data into the system')
 
     parser.add_argument('--fromdate', '-f',
-                        default='2010-01-01',
+                        default='2015-01-01',
                         help='Starting date in YYYY-MM-DD format')
 
     parser.add_argument('--todate', '-t',
                         default='2017-01-01',
                         help='Starting date in YYYY-MM-DD format')
 
-    parser.add_argument('--period', default=252, type=int,
+    parser.add_argument('--period', default=10, type=int,
                         help='Period to apply to the Simple Moving Average')
 
     parser.add_argument('--cash', default=100000, type=int,
