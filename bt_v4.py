@@ -42,13 +42,9 @@ pylab.rcParams["font.size"] = "10"
 import pandas as pd
 from backtrader.indicators.basicops import PeriodN
 import statsmodels.api as sm
-### TODO ###
-#
-# Implement multiple stocks
-#
-# Delta hedge portfolio using /MES
-#
-###
+
+pd.set_option('display.max_columns', 500)
+
 
 def printTradeAnalysis(analyzer):
     '''
@@ -83,7 +79,7 @@ def printTradeAnalysis(analyzer):
 
 def printSQN(analyzer):
     sqn = round(analyzer.sqn,2)
-    print('SQN: {}'.format(sqn))
+    return 'SQN: {}'.format(sqn)
 
 
 class FixedCommisionScheme(bt.CommInfoBase):
@@ -787,7 +783,7 @@ def runstrategy(ticker_list,bench_ticker):
 
     comminfo = FixedCommisionScheme()
     cerebro.broker.addcommissioninfo(comminfo)
-    cerebro.broker.set_shortcash(False)
+
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe_ratio')
 
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="ta")
@@ -813,7 +809,7 @@ def runstrategy(ticker_list,bench_ticker):
 
 
 
-    printSQN(strat[0].analyzers.sqn.get_analysis())
+
 
     bench_returns = strat[0].analyzers.benchreturns.get_analysis()
     bench_df = pd.DataFrame.from_dict(bench_returns, orient='index', columns=['return'])
@@ -821,34 +817,53 @@ def runstrategy(ticker_list,bench_ticker):
                                        columns=['return'])
 
     # print('Sharpe Ratio(bt):', firstStrat.analyzers.myysharpe.get_analysis()['sharperatio'])
-    print('Sharpe Ratio:', empyrical.sharpe_ratio(return_df, risk_free=args.rf_rate / 252, period='daily')[0])
-    print('Sharpe Ratio Benchmark:', empyrical.sharpe_ratio(bench_df, risk_free=args.rf_rate / 252, period='daily')[0])
-    print('')
-
-    print('Sortino Ratio:', empyrical.sortino_ratio(return_df, period='daily')[0])
-    print('Sortino Ratio Benchmark:', empyrical.sortino_ratio(bench_df, period='daily')[0])
-    print('')
-    print('VaR:', empyrical.value_at_risk(return_df) * 100, '%')
-    print('VaR Benchmark:', empyrical.value_at_risk(bench_df) * 100, '%')
-
-    print('')
-
-    print('Capture:', round(empyrical.capture(return_df, bench_df, period='daily')[0] * 100), '%')
-    print('')
-
-    print('Max drawdown: ', round(empyrical.max_drawdown(return_df)[0] * 100), '%')
-    print('Max drawdown Benchmark: ', round(empyrical.max_drawdown(bench_df)[0] * 100), '%')
-
-    print('')
+    # print('Sharpe Ratio:', empyrical.sharpe_ratio(return_df, risk_free=args.rf_rate / 252, period='daily')[0])
+    # print('Sharpe Ratio Benchmark:', empyrical.sharpe_ratio(bench_df, risk_free=args.rf_rate / 252, period='daily')[0])
+    # print('')
+    #
+    # print('Sortino Ratio:', empyrical.sortino_ratio(return_df, period='daily')[0])
+    # print('Sortino Ratio Benchmark:', empyrical.sortino_ratio(bench_df, period='daily')[0])
+    # print('')
+    # print('VaR:', empyrical.value_at_risk(return_df) * 100, '%')
+    # print('VaR Benchmark:', empyrical.value_at_risk(bench_df) * 100, '%')
+    #
+    # print('')
+    #
+    # print('Capture:', round(empyrical.capture(return_df, bench_df, period='daily')[0] * 100), '%')
+    # print('')
+    #
+    # print('Max drawdown: ', round(empyrical.max_drawdown(return_df)[0] * 100), '%')
+    # print('Max drawdown Benchmark: ', round(empyrical.max_drawdown(bench_df)[0] * 100), '%')
+    #
+    # print('')
     alpha, beta = empyrical.alpha_beta(return_df, bench_df, risk_free=args.rf_rate)
-    print('Beta: ', beta)
-    print('')
-    print('Annual return:', round(empyrical.annual_return(return_df)[0] * 100), '%')
-    print('Annual Vol:', round(empyrical.annual_volatility(return_df)[0] * 100), '%')
-    print('')
-    print('Annual return Benchmark:', round(empyrical.annual_return(bench_df)[0] * 100), '%')
-    print('Annual Vol Benchmark:', round(empyrical.annual_volatility(bench_df)[0] * 100), '%')
-    print('')
+    # print('Beta: ', beta)
+    # print('')
+    # print('Annual return:', round(empyrical.annual_return(return_df)[0] * 100), '%')
+    # print('Annual Vol:', round(empyrical.annual_volatility(return_df)[0] * 100), '%')
+    # print('')
+    # print('Annual return Benchmark:', round(empyrical.annual_return(bench_df)[0] * 100), '%')
+    # print('Annual Vol Benchmark:', round(empyrical.annual_volatility(bench_df)[0] * 100), '%')
+    # print('')
+
+    dic = {'SQN': printSQN(strat[0].analyzers.sqn.get_analysis()),
+            'sharpe': empyrical.sharpe_ratio(return_df, risk_free=args.rf_rate / 252, period='daily')[0],
+           'sharpe_bm': empyrical.sharpe_ratio(bench_df, risk_free=args.rf_rate / 252, period='daily')[0],
+           'sortino': empyrical.sortino_ratio(bench_df, period='daily')[0],
+           'sortino_bm': empyrical.sortino_ratio(bench_df, period='daily')[0],
+           'VaR': empyrical.value_at_risk(return_df) * 100,
+           'VaR_bm': empyrical.value_at_risk(bench_df) * 100,
+           'capture': round(empyrical.capture(return_df, bench_df, period='daily')[0] * 100),
+           'max_dd': round(empyrical.max_drawdown(return_df)[0] * 100),
+           'max_dd_bm':round(empyrical.max_drawdown(bench_df)[0] * 100),
+           'beta': beta,
+           'return_annual':round(empyrical.annual_return(return_df)[0] * 100,2),
+           'return_annual_bm':round(empyrical.annual_volatility(return_df)[0] * 100,2),
+           'vol_annual':round(empyrical.annual_return(bench_df)[0] * 100,2),
+           'vol_annual_bm':round(empyrical.annual_volatility(bench_df)[0] * 100,2)}
+
+    df = pd.DataFrame(dic,index = [0])
+    print(df)
 
     def calc_stats(df):
         df['perc_ret'] = (1 + df['return']).cumprod() - 1
@@ -889,7 +904,7 @@ def runstrategy(ticker_list,bench_ticker):
 
 bench_ticker = 'SPY'
 # ticker_list = ['XLF','BLK','WFC','BAC','JPM','GS','SPGI','AXP','MS','BK','MMC']
-ticker_list = ['XLF','JPM','GS','MS']
+ticker_list = ['XLF','JPM','GS','MS','BAC','AXP']
 # ticker_list = ['XLF','MS']
 # ticker_list = ['VTI','XLF','XLU','XLK','XLV','XLY','XLP','XLE']
 
