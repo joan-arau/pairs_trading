@@ -51,7 +51,7 @@ def printTradeAnalysis(analyzer):
     Function to print the Technical Analysis results in a nice format.
     '''
     #Get the results we are interested in
-    print(analyzer)
+    # print(analyzer)
     total_open = analyzer.total.open
     total_closed = analyzer.total.closed
     total_won = analyzer.won.total
@@ -76,10 +76,11 @@ def printTradeAnalysis(analyzer):
     print("Trade Analysis Results:")
     for row in print_list:
         print(row_format.format('',*row))
+    print('')
 
 def printSQN(analyzer):
     sqn = round(analyzer.sqn,2)
-    return 'SQN: {}'.format(sqn)
+    return sqn
 
 
 class FixedCommisionScheme(bt.CommInfoBase):
@@ -121,10 +122,10 @@ def parse_args():
                         default=high_vol[1],
                         help='Starting date in YYYY-MM-DD format')
 
-    parser.add_argument('--period', default=60, type=int,
+    parser.add_argument('--period', default=65, type=int,
                         help='Period to apply to the Simple Moving Average')
 
-    parser.add_argument('--cash', default=1000000, type=int,
+    parser.add_argument('--cash', default=10000, type=int,
                         help='Starting Cash')
 
     parser.add_argument('--runnext', action='store_true',
@@ -136,17 +137,11 @@ def parse_args():
     parser.add_argument('--oldsync', action='store_true',
                         help='Use old data synchronization method')
 
-    parser.add_argument('--commperc', default=0, type=float,
-                        help='Percentage commission (0.005 is 0.5%%')
-
     parser.add_argument('--stake', default=0.01, type=int,
                         help='Stake to apply in each operation')
 
     parser.add_argument('--plot', '-p', default=True, action='store_true',
                         help='Plot the read data')
-
-    parser.add_argument('--numfigs', '-n', default=1,
-                        help='Plot using numfigs figures')
 
     parser.add_argument('--rf_rate', '-rf', default=0.001,
                         help='Risk free rate')
@@ -270,7 +265,7 @@ class PairTradingStrategy(bt.Strategy):
         print(self.combs)
 
         self.bench = list(enumerate(self.datas))[0][1]
-        print(self.bench._name)
+        print('Bench: ',self.bench._name)
 
         self.combs_stats = []
         self.spread_traker = {}
@@ -928,6 +923,8 @@ def runstrategy(ticker_list,bench_ticker):
     # print('Annual Vol Benchmark:', round(empyrical.annual_volatility(bench_df)[0] * 100), '%')
     # print('')
 
+    printTradeAnalysis(strat[0].analyzers.ta.get_analysis())
+
     dic = {'SQN': printSQN(strat[0].analyzers.sqn.get_analysis()),
             'sharpe': empyrical.sharpe_ratio(return_df, risk_free=args.rf_rate / 252, period='daily')[0],
            'sharpe_bm': empyrical.sharpe_ratio(bench_df, risk_free=args.rf_rate / 252, period='daily')[0],
@@ -959,7 +956,7 @@ def runstrategy(ticker_list,bench_ticker):
     portvalue = cerebro.broker.getvalue()
 
     # Print out the final result
-    print('Final Portfolio Value: ${}'.format(round(portvalue)), 'PnL: ${}'.format(round(portvalue - args.cash)),
+    print('Final Portfolio Value: ${}'.format(round(portvalue,2)), 'PnL: ${}'.format(round(portvalue - args.cash,2)),
           'PnL: {}%'.format(round(((portvalue / args.cash) - 1) * 100,2)))
 
     # Finally plot the end results
@@ -986,7 +983,7 @@ def runstrategy(ticker_list,bench_ticker):
 
 bench_ticker = 'SPY'
 # ticker_list = ['XLF','BLK','WFC','BAC','JPM','GS','SPGI','AXP','MS','BK','MMC']
-ticker_list = ['XLF','JPM','GS']#,'MS','BAC','AXP']
+ticker_list = ['XLF','JPM','GS','MS','BAC']
 # ticker_list = ['XLF','MS']
 # ticker_list = ['VTI','XLF','XLU','XLK','XLV','XLY','XLP','XLE']
 
