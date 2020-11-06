@@ -288,16 +288,24 @@ class PairTradingStrategy(bt.Strategy):
                                                        )
             self.zscore = self.transform.zscore
 
-            self.beta =  btind.OLS_BetaN(self.data0, self.data1,
-                                                       period=self.p.period,plot = False)
+            # self.beta =  btind.OLS_BetaN(self.data0, self.data1,
+            #                                            period=self.p.period,plot = False)
 
-            self.bta = btind.OLS_BetaN(self.data0, self.bench,
-                                       period=self.p.period, plot=False)
+            self.beta = btind.OLS_Slope_InterceptN(self.data0, self.data1,period=self.p.period,plot = False).slope
+
+
+            # self.bta = btind.OLS_BetaN(self.data0, self.bench,
+            #                            period=self.p.period, plot=False)
+
+            self.bta = btind.OLS_Slope_InterceptN(self.data0, self.bench, period=self.p.period, plot=False).slope
+
 
             self.bench_beta[a] = self.bta
 
-            self.bta = btind.OLS_BetaN(self.data1, self.bench,
-                                       period=self.p.period, plot=False)
+            # self.bta = btind.OLS_BetaN(self.data1, self.bench,
+            #                            period=self.p.period, plot=False)
+
+            self.bta = btind.OLS_Slope_InterceptN(self.data1, self.bench, period=self.p.period, plot=False).slope
 
             self.bench_beta[b] = self.bta
 
@@ -852,6 +860,11 @@ def runstrategy(ticker_list,bench_ticker):
                         period=args.period,
                         stake=args.stake)
 
+    # cerebro.optstrategy(
+    #         PairTradingStrategy,
+    #         period=range(45, 75),
+    #         )
+
     # Add the commission - only stocks like a for each operation
     cerebro.broker.setcash(args.cash)
 
@@ -879,6 +892,11 @@ def runstrategy(ticker_list,bench_ticker):
                 preload=not args.nopreload,
                 oldsync=args.oldsync
                 )
+    #
+    # strat = cerebro.optstrategy(
+    #     PairTradingStrategy,
+    #     period=range(45, 75),
+    #     printlog=True)
 
     # Plot if requested
     if args.plot:
