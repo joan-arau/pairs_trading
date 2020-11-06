@@ -115,11 +115,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MultiData Strategy')
 
     parser.add_argument('--fromdate', '-f',
-                        default=high_vol[0],
+                        default=low_vol[0],
                         help='Starting date in YYYY-MM-DD format')
 
     parser.add_argument('--todate', '-t',
-                        default=high_vol[1],
+                        default=low_vol[1],
                         help='Starting date in YYYY-MM-DD format')
 
     parser.add_argument('--period', default=65, type=int,
@@ -983,7 +983,7 @@ def runstrategy(ticker_list,bench_ticker):
 
 bench_ticker = 'SPY'
 # ticker_list = ['XLF','BLK','WFC','BAC','JPM','GS','SPGI','AXP','MS','BK','MMC']
-ticker_list = ['XLF','JPM','GS','MS','BAC']
+ticker_list = ['XLF','JPM','GS']
 # ticker_list = ['XLF','MS']
 # ticker_list = ['VTI','XLF','XLU','XLK','XLV','XLY','XLP','XLE']
 
